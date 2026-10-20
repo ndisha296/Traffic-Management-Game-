@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Vehicle Masters: Precision Driver & Dynamic A* Traffic Navigator</title>
+  <meta name="description" content="Play Vehicle Masters: Precision Driver online. Interactive cockpit steering wheel, PRND shifter, 3D pedals, dynamic A* pathfinding algorithm, emergency vehicle preemption, and stylized 3D city traffic simulation.">
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚗</text></svg>">
+</head>
+<body>
+
+  <!-- Top Header Navigation -->
+  <header class="game-header">
+    <div class="brand">
+      <div class="brand-icon">🚗</div>
+      <div>
+        <h1 class="brand-title">VEHICLE MASTERS</h1>
+      </div>
+      <span class="brand-badge">A* Dynamic Engine</span>
+    </div>
+
+    <!-- Live Telemetry Stats -->
+    <div class="header-telemetry">
+      <div class="stat-pill" title="Current driving speed">
+        <span class="label">Speed</span>
+        <span class="value" id="hdr-speed">0 MPH</span>
+      </div>
+      <div class="stat-pill" title="Transmission gear">
+        <span class="label">Gear</span>
+        <span class="value" id="hdr-gear" style="color: #facc15;">P</span>
+      </div>
+      <div class="stat-pill" title="City-wide traffic congestion index">
+        <span class="label">Traffic</span>
+        <span class="value" id="hdr-congestion">0%</span>
+      </div>
+      <div class="stat-pill" title="Score points">
+        <span class="label">Score</span>
+        <span class="value" id="hdr-score" style="color: #4ade80;">1,000</span>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="header-actions">
+      <button class="btn-header" id="btn-camera" title="Cycle camera mode (V)">
+        <span>🚗</span> <span id="camera-label">Cockpit</span>
+      </button>
+
+      <button class="btn-header" id="btn-audio" title="Toggle audio synthesis (M)">
+        <span id="audio-icon">🔊</span>
+      </button>
+
+      <button class="btn-header" id="btn-help" title="Controls and Help">
+        <span>❓</span> Controls
+      </button>
+
+      <button class="btn-header btn-primary-glow" id="btn-drawer-toggle" title="Toggle Command Deck Drawer (Tab)">
+        <span>⚙</span> Command Deck
+      </button>
+    </div>
+  </header>
+
+  <!-- Game Canvas Viewport -->
+  <main class="game-viewport">
+    <canvas id="gameCanvas" width="1260" height="860"></canvas>
+
+    <!-- Floating HUD Tip -->
+    <div class="floating-hud-tip">
+      <span><span class="key">W / S</span> Gas / Brake</span>
+      <span>•</span>
+      <span><span class="key">A / D</span> Steer</span>
+      <span>•</span>
+      <span><span class="key">P</span> Park</span>
+      <span>•</span>
+      <span><span class="key">V</span> Camera</span>
+      <span>•</span>
+      <span><span class="key">Q</span> GPS Reroute</span>
+      <span>•</span>
+      <span><span class="key">H</span> Horn</span>
+    </div>
+
+    <!-- Slide-Out Command Deck Drawer -->
+    <aside class="command-deck-drawer" id="command-drawer">
+      <div class="drawer-header">
+        <h2 class="drawer-title"><span>⚙</span> Command Deck</h2>
+        <button class="drawer-close" id="btn-drawer-close" title="Close Drawer (Tab)">✕</button>
+      </div>
+
+      <!-- Traffic Efficiency -->
+      <div class="drawer-card">
+        <div class="drawer-card-title">
+          <span>Traffic Efficiency</span>
+          <span id="drawer-efficiency-val" style="color: #22c55e;">94%</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-label">Average Wait Time:</span>
+          <span class="metric-val" id="drawer-wait-val">1.2s</span>
+        </div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="efficiency-progress-bar" style="width: 94%;"></div>
+        </div>
+      </div>
+
+      <!-- Congestion Meter -->
+      <div class="drawer-card">
+        <div class="drawer-card-title">
+          <span>Network Congestion</span>
+          <span id="drawer-congestion-val">12%</span>
+        </div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="congestion-progress-bar" style="width: 12%;"></div>
+        </div>
+        <div class="metric-row">
+          <span class="metric-label">Active AI Vehicles:</span>
+          <span class="metric-val" id="drawer-vehicle-count">12</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-label">Bottleneck Edges:</span>
+          <span class="metric-val" id="drawer-bottlenecks">0</span>
+        </div>
+      </div>
+
+      <!-- Dynamic A* Formula Card -->
+      <div class="drawer-card">
+        <div class="drawer-card-title">Dynamic A* Heuristic</div>
+        <div class="formula-box">
+          <div>g(n) = Base_Cost + (k × Queue_Cars × 25)</div>
+          <div class="formula-sub">Evaluates real-time lane congestion to bypass jams</div>
+        </div>
+        <div class="slider-group">
+          <div class="slider-labels">
+            <span class="metric-label">Penalty Weight (k):</span>
+            <span class="metric-val" id="k-val-display" style="color: #06b6d4;">6.0</span>
+          </div>
+          <input type="range" id="k-slider" min="0" max="20" step="0.5" value="6.0">
+        </div>
+      </div>
+
+      <!-- Simulation Action Controls -->
+      <div class="drawer-card">
+        <div class="drawer-card-title">Simulation Controls</div>
+        <div class="action-grid">
+          <button class="btn-drawer-action" id="btn-spawn-car">
+            <span>🚗</span> Spawn Car
+          </button>
+          <button class="btn-drawer-action" id="btn-toggle-heatmap">
+            <span>🔥</span> Heatmap: OFF
+          </button>
+          <button class="btn-drawer-action" id="btn-toggle-lights">
+            <span>🚦</span> AI Lights: ON
+          </button>
+          <button class="btn-drawer-action" id="btn-reroute">
+            <span>📍</span> GPS Reroute
+          </button>
+          <button class="btn-drawer-action emergency" id="btn-spawn-ambulance">
+            <span>🚑</span> Dispatch Emergency Ambulance (Priority Override)
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Reset -->
+      <div class="drawer-card" style="margin-top: auto;">
+        <button class="btn-drawer-action" id="btn-reset-game" style="background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.35); color: #f87171;">
+          <span>🔄</span> Reset Driving Mission
+        </button>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Help & Controls Modal -->
+  <div class="modal-overlay" id="help-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title"><span>🕹️</span> Vehicle Masters Driving Controls</h2>
+        <button class="drawer-close" id="btn-modal-close">✕</button>
+      </div>
+
+      <table class="controls-table">
+        <tbody>
+          <tr>
+            <td class="key"><kbd>W</kbd> / <kbd>↑</kbd></td>
+            <td class="desc"><strong>Gas / Throttle:</strong> Accelerate in Drive (auto-shifts from P).</td>
+          </tr>
+          <tr>
+            <td class="key"><kbd>S</kbd> / <kbd>↓</kbd></td>
+            <td class="desc"><strong>Brake / Reverse:</strong> Decelerate firmly (or reverses if stopped).</td>
+          </tr>
+          <tr>
+            <td class="key"><kbd>A</kbd> / <kbd>D</kbd></td>
+            <td class="desc"><strong>Steering:</strong> Smoothly rotate steering wheel & front wheels.</td>
+          </tr>
+          <tr>
+            <td class="key"><kbd>Mouse Drag</kbd></td>
+            <td class="desc"><strong>Interactive Cockpit:</strong> Drag the on-screen steering wheel, click PRND shifter lever, or click pedals!</td>
+          </tr>
+          <tr>
+            <td class="key"><kbd>V</kbd></td>
+            <td class="desc"><strong>Toggle Camera:</strong> Cycle Cockpit (Sit in Car) ➔ Follow Cam ➔ City Overview.</td>
+          </tr>
+          <tr>
+            <td class="key"><kbd>P</kbd></td>
+            <td class="desc"><strong>Park Transmission:</strong> Locks handbrake in parking bay.</td>
+          </tr>
+          <tr>
+            <td class="key"><kbd>H</kbd> / <kbd>Wheel Hub</kbd></td>
+            <td class="desc"><strong>Car Horn:</strong> Dual-tone acoustic warning.</td>
+          </tr>
+          <tr>
+            <td class="key"><kbd>Q</kbd> / <kbd>GPS Tablet</kbd></td>
+            <td class="desc"><strong>Dynamic A* Reroute:</strong> Recalculate route to bypass jams.</td>
+          </tr>
+          <tr>
+            <td class="key"><kbd>Z</kbd> / <kbd>C</kbd> / <kbd>X</kbd></td>
+            <td class="desc"><strong>Blinkers:</strong> Left turn indicator, Right turn indicator, Hazard blinkers.</td>
+          </tr>
+          <tr>
+            <td class="key"><kbd>Tab</kbd></td>
+            <td class="desc"><strong>Command Deck:</strong> Slide out traffic telemetry & simulation controls.</td>
+          </tr>
+          <tr>
+            <td class="key"><kbd>Space</kbd></td>
+            <td class="desc"><strong>Handbrake / Pause:</strong> Freeze or stop car immediately.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div style="display: flex; justify-content: flex-end;">
+        <button class="btn-header btn-primary-glow" id="btn-modal-got-it">Got It & Drive!</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>

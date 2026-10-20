@@ -76,10 +76,15 @@ Click **`[⚙ Command Deck]`** in the top-right corner or press **`Tab`** to sli
 
 ## 🚀 How to Run the Game
 
-### Method 1: Double-Click Launcher
+### Method 1: Play Directly in Web Browser (Vercel)
+The game is equipped with a high-performance 60 FPS HTML5 Canvas + Web Audio API version optimized for instant browser play on desktop and mobile:
+- **Live Vercel Web App**: Connect and deploy to Vercel with zero configuration (configured via `vercel.json` and static entrypoint).
+- To test locally, simply open `index.html` in any web browser!
+
+### Method 2: Double-Click Launcher (Desktop Pygame)
 Double-click `run_game.bat` in the project directory.
 
-### Method 2: Command Line
+### Method 3: Command Line (Desktop Pygame)
 ```powershell
 cd C:\Users\Disha\Desktop\game
 .\.venv\Scripts\python.exe main.py
@@ -89,3 +94,4 @@ cd C:\Users\Disha\Desktop\game
 ```powershell
 .\.venv\Scripts\python.exe main.py --test
 ```
+

@@ -26,6 +26,40 @@ from vehicle import Vehicle, EmergencyAmbulance
 from player import PlayerCar
 from ui import CommandCenterHUD
 
+# ==============================================================================
+# Vercel Serverless & WSGI Entrypoints (fixes [PYTHON_ENTRYPOINT_NOT_FOUND])
+# ==============================================================================
+def app(environ, start_response):
+    """Standard WSGI entrypoint for Vercel / Python web hosting."""
+    status = '200 OK'
+    try:
+        with open('index.html', 'rb') as f:
+            content = f.read()
+    except Exception:
+        content = b"<!DOCTYPE html><html><body><h1>Vehicle Masters: Traffic Management Game</h1></body></html>"
+    response_headers = [
+        ('Content-Type', 'text/html; charset=utf-8'),
+        ('Content-Length', str(len(content)))
+    ]
+    start_response(status, response_headers)
+    return [content]
+
+application = app
+
+def handler(request=None, *args, **kwargs):
+    """Serverless handler variable for Vercel Python runtime."""
+    try:
+        with open('index.html', 'r', encoding='utf-8') as f:
+            content = f.read()
+    except Exception:
+        content = "Vehicle Masters: Traffic Management Game"
+    return {
+        "statusCode": 200,
+        "headers": {"Content-Type": "text/html; charset=utf-8"},
+        "body": content
+    }
+
+
 class Particle:
     """Celebration or collision particle with camera offset support."""
     def __init__(self, x, y, color):
